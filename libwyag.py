@@ -117,19 +117,27 @@ def repo_create(path):
     # First, we make sure the path either doesn't exist or is an
     # empty dir.
 
+    logger.info(f"Creating repository at {path}")
+    logger.info(f"Worktree path: {repo.worktree}")
+    logger.info(f"Git directory path: {repo.gitdir}")
+
     if os.path.exists(repo.worktree):
+        logger.info(f"Worktree exists: {repo.worktree}")
         if not os.path.isdir(repo.worktree):
-            raise Exception (f"{path} is not a directory!")
+            raise Exception(f"{path} is not a directory!")
         if os.path.exists(repo.gitdir) and os.listdir(repo.gitdir):
-            raise Exception (f"{path} is not empty!")
+            raise Exception(f"{path} is not empty!")
     else:
+        logger.info(f"Creating worktree directory: {repo.worktree}")
         os.makedirs(repo.worktree)
 
+    logger.info("Creating .git subdirectories")
     assert repo_dir(repo, "branches", mkdir=True)
     assert repo_dir(repo, "objects", mkdir=True)
     assert repo_dir(repo, "refs", "tags", mkdir=True)
     assert repo_dir(repo, "refs", "heads", mkdir=True)
 
+    logger.info("Creating .git files")
     # .git/description
     with open(repo_file(repo, "description"), "w") as f:
         f.write("Unnamed repository; edit this file 'description' to name the repository.\n")
@@ -142,6 +150,7 @@ def repo_create(path):
         config = repo_default_config()
         config.write(f)
 
+    logger.info("Repository created successfully")
     return repo
 
 def repo_default_config():
@@ -165,8 +174,62 @@ argsp.add_argument("path",
                    default=".",
                    help="Where to create the repository.")
 
+# Add functionality for `add` command to stage files
+def cmd_add(args):
+    """Handle the 'add' command."""
+    logger.info(f"Staging file(s): {args.files}")
+    repo = GitRepository(os.getcwd())  # Initialize repository object
+    # Logic to add files to the staging area
+    for file in args.files:
+        logger.info(f"Processing file: {file}")
+        # Example: Compute hash and store in objects directory
+        with open(file, "rb") as f:
+            data = f.read()
+            sha1 = hashlib.sha1(data).hexdigest()
+            obj_path = os.path.join(repo.gitdir, "objects", sha1[:2], sha1[2:])
+            os.makedirs(os.path.dirname(obj_path), exist_ok=True)
+            with open(obj_path, "wb") as obj_file:
+                obj_file.write(data)
+    logger.info("Files staged successfully.")
 
+argsp_add = argsubparsers.add_parser("add", help="Stage files for the next commit.")
+argsp_add.add_argument("files", nargs="+", help="Files to stage.")
 
+# Add functionality for `commit` command to create a snapshot
+def cmd_commit(args):
+    """Handle the 'commit' command."""
+    logger.info(f"Creating commit with message: {args.message}")
+    repo = GitRepository(os.getcwd())  # Initialize repository object
+    # Logic to create a commit object
+    tree_hash = "dummy_tree_hash"  # Replace with actual tree hash computation
+    parent_hash = "dummy_parent_hash"  # Replace with actual parent hash lookup
+    commit_data = f"tree {tree_hash}\nparent {parent_hash}\n\n{args.message}"
+    sha1 = hashlib.sha1(commit_data.encode()).hexdigest()
+    obj_path = os.path.join(repo.gitdir, "objects", sha1[:2], sha1[2:])
+    os.makedirs(os.path.dirname(obj_path), exist_ok=True)
+    with open(obj_path, "wb") as obj_file:
+        obj_file.write(commit_data.encode())
+    logger.info(f"Commit created successfully: {sha1}")
+
+argsp_commit = argsubparsers.add_parser("commit", help="Create a new commit.")
+argsp_commit.add_argument("message", help="Commit message.")
+
+# Add functionality for `log` command to display commit history
+def cmd_log(args):
+    """Handle the 'log' command."""
+    logger.info("Displaying commit history")
+    repo = GitRepository(os.getcwd())  # Initialize repository object
+    # Logic to traverse and display commit history
+    current_commit = "dummy_commit_hash"  # Replace with actual HEAD lookup
+    while current_commit:
+        commit_path = os.path.join(repo.gitdir, "objects", current_commit[:2], current_commit[2:])
+        with open(commit_path, "rb") as commit_file:
+            commit_data = commit_file.read().decode()
+            logger.info(f"Commit: {current_commit}\n{commit_data}")
+            # Extract parent hash for next iteration
+            current_commit = "dummy_parent_hash"  # Replace with actual parent hash extraction
+
+argsp_log = argsubparsers.add_parser("log", help="Display commit history.")
 
 # Define the main function
 def main(argv=sys.argv[1:]):
@@ -183,100 +246,16 @@ def main(argv=sys.argv[1:]):
     # Replace the match statement with if-elif conditions for compatibility with Python 3.9
     if args.command == "add":
         cmd_add(args)
-    elif args.command == "cat-file":
-        cmd_cat_file(args)
-    elif args.command == "check-ignore":
-        cmd_check_ignore(args)
-    elif args.command == "checkout":
-        cmd_checkout(args)
     elif args.command == "commit":
         cmd_commit(args)
-    elif args.command == "hash-object":
-        cmd_hash_object(args)
     elif args.command == "init":
         logger.info(f'Command: {args.command}') 
         cmd_init(args)
     elif args.command == "log":
         cmd_log(args)
-    elif args.command == "ls-files":
-        cmd_ls_files(args)
-    elif args.command == "ls-tree":
-        cmd_ls_tree(args)
-    elif args.command == "rev-parse":
-        cmd_rev_parse(args)
-    elif args.command == "rm":
-        cmd_rm(args)
-    elif args.command == "show-ref":
-        cmd_show_ref(args)
-    elif args.command == "status":
-        cmd_status(args)
-    elif args.command == "tag":
-        cmd_tag(args)
     else:
         print("Bad command.")
 
-
-# Placeholder functions for commands
-def cmd_add(args):
-    """Handle the 'add' command."""
-    print("Executing add command")
-
-def cmd_cat_file(args):
-    """Handle the 'cat-file' command."""
-    print("Executing cat-file command")
-
-def cmd_check_ignore(args):
-    """Handle the 'check-ignore' command."""
-    print("Executing check-ignore command")
-
-def cmd_checkout(args):
-    """Handle the 'checkout' command."""
-    print("Executing checkout command")
-
-def cmd_commit(args):
-    """Handle the 'commit' command."""
-    print("Executing commit command")
-
-def cmd_hash_object(args):
-    """Handle the 'hash-object' command."""
-    print("Executing hash-object command")
-
-# def cmd_init(args):
-#     """Handle the 'init' command."""
-#     logger.info("Executing init command")
-#     repo_create(args.path)
-
-def cmd_log(args):
-    """Handle the 'log' command."""
-    print("Executing log command")
-
-def cmd_ls_files(args):
-    """Handle the 'ls-files' command."""
-    print("Executing ls-files command")
-
-def cmd_ls_tree(args):
-    """Handle the 'ls-tree' command."""
-    print("Executing ls-tree command")
-
-def cmd_rev_parse(args):
-    """Handle the 'rev-parse' command."""
-    print("Executing rev-parse command")
-
-def cmd_rm(args):
-    """Handle the 'rm' command."""
-    print("Executing rm command")
-
-def cmd_show_ref(args):
-    """Handle the 'show-ref' command."""
-    print("Executing show-ref command")
-
-def cmd_status(args):
-    """Handle the 'status' command."""
-    print("Executing status command")
-
-def cmd_tag(args):
-    """Handle the 'tag' command."""
-    print("Executing tag command")
 
 # Ensure the main function is called when the script is executed directly
 if __name__ == "__main__":
