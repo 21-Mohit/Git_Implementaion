@@ -92,5 +92,4 @@ Detailed logs are generated for each command to trace the execution process. Log
 - Optimize file and directory operations for better performance.
 - Add support for more Git-like commands.
 
-## License
-This project is licensed under the MIT License.
+
