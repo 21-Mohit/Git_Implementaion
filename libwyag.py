@@ -117,27 +117,19 @@ def repo_create(path):
     # First, we make sure the path either doesn't exist or is an
     # empty dir.
 
-    logger.info(f"Creating repository at {path}")
-    logger.info(f"Worktree path: {repo.worktree}")
-    logger.info(f"Git directory path: {repo.gitdir}")
-
     if os.path.exists(repo.worktree):
-        logger.info(f"Worktree exists: {repo.worktree}")
         if not os.path.isdir(repo.worktree):
-            raise Exception(f"{path} is not a directory!")
+            raise Exception (f"{path} is not a directory!")
         if os.path.exists(repo.gitdir) and os.listdir(repo.gitdir):
-            raise Exception(f"{path} is not empty!")
+            raise Exception (f"{path} is not empty!")
     else:
-        logger.info(f"Creating worktree directory: {repo.worktree}")
         os.makedirs(repo.worktree)
 
-    logger.info("Creating .git subdirectories")
     assert repo_dir(repo, "branches", mkdir=True)
     assert repo_dir(repo, "objects", mkdir=True)
     assert repo_dir(repo, "refs", "tags", mkdir=True)
     assert repo_dir(repo, "refs", "heads", mkdir=True)
 
-    logger.info("Creating .git files")
     # .git/description
     with open(repo_file(repo, "description"), "w") as f:
         f.write("Unnamed repository; edit this file 'description' to name the repository.\n")
@@ -150,7 +142,6 @@ def repo_create(path):
         config = repo_default_config()
         config.write(f)
 
-    logger.info("Repository created successfully")
     return repo
 
 def repo_default_config():
